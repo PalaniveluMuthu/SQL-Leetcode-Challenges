@@ -62,20 +62,24 @@ Explanation:
 
 -- Solution in MySQL 
 
-# Write your MySQL query statement below
-SELECT visited_on ,ROUND(Running_Sum,2) as amount,ROUND(Running_Avg,2) as average_amount
-FROM
-(
-SELECT visited_on ,
-       Sum(Total_Amount) OVER(ORDER BY visited_on ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as Running_Sum,
-       Avg(Total_Amount) OVER(ORDER BY visited_on ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as Running_Avg,
-       MIN(visited_on) OVER() Min_Date
-FROM
-(
-SELECT visited_on ,sum(amount) as Total_Amount
-FROM
-CUSTOMER
-GROUP BY visited_on
-)a
-)B
-WHERE date_sub(visited_on ,INTERVAL 6 DAY) IN (SELECT DISTINCT visited_on FROM customer);
+SELECT
+    visited_on,
+    (
+        SELECT SUM(amount)
+        FROM customer
+        WHERE visited_on BETWEEN DATE_SUB(c.visited_on, INTERVAL 6 DAY) AND c.visited_on
+    ) AS amount,
+    ROUND(
+        (
+            SELECT SUM(amount) / 7
+            FROM customer
+            WHERE visited_on BETWEEN DATE_SUB(c.visited_on, INTERVAL 6 DAY) AND c.visited_on
+        ),
+        2
+    ) AS average_amount
+FROM customer c
+WHERE visited_on >= (
+        SELECT DATE_ADD(MIN(visited_on), INTERVAL 6 DAY)
+        FROM customer
+    )
+GROUP BY visited_on;
