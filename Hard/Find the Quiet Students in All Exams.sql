@@ -77,8 +77,27 @@ Since student 5 is not taking any exam, he is excluded from the result.
 So, we only return the information of Student 2.
 */
 
--- Solution in MS SQL Server
+--## Two Solution in MS SQL Server
 
+--## Option 1 ( With Analytical Function)
+
+WITH CTE AS
+(
+  SELECT e.student_id , e.exam_id ,s.student_name,
+         RANK() OVER (PARTITION BY e.exam_id ORDER BY e.score ) AS MinScore_Rnk,
+         RANK() OVER (PARTITION BY e.exam_id ORDER BY e.score DESC) AS MaxScore_Rnk
+  FROM 
+  Exam e
+  INNER JOIN
+  Student s
+  ON e.student_id = s.student_id
+)
+SELECT DISTINCT student_id ,student_name 
+FROM CTE 
+WHERE student_id NOT IN (SELECT student_id FROM CTE WHERE MinScore_Rnk = 1 OR MaxScore_Rnk=1)
+ORDER BY 1;
+
+--## Option Two (With Tmp Table )
 WITH tmp as
 (
     SELECT distinct student_id 
